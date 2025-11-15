@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BookHub — Loja de Ebooks</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+  <script src="firebase-config.js"></script> <!-- você deve preencher esse arquivo com suas chaves -->
+  <!-- Firebase (compat) SDKs (só funcionam quando você colocar suas chaves) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-grid">
+      <div class="brand">BookHub</div>
+      <div class="search-area">
+        <input id="searchInput" placeholder="Buscar título, autor ou categoria..." aria-label="Buscar">
+      </div>
+      <div class="controls">
+        <button id="btnCategories" class="btn small">Categorias</button>
+        <button id="btnLogin" class="btn small">Entrar</button>
+        <button id="btnAdmin" class="btn small ghost">Admin</button>
+        <button id="cartBtn" class="btn small">Carrinho (<span id="cartCount">0</span>)</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1>Leitura que transforma</h1>
+      <p>Explore milhares de ebooks em diversas categorias — pagamentos seguros e leitura instantânea.</p>
+    </section>
+
+    <section class="filters" id="filters">
+      <div id="categoriesList"></div>
+      <div class="sort">
+        <label>Ordenar:
+          <select id="sortSelect">
+            <option value="featured">Destaques</option>
+            <option value="price-asc">Preço (menor)</option>
+            <option value="price-desc">Preço (maior)</option>
+            <option value="rating-desc">Avaliação</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section id="ebooksGrid" class="ebooks-grid" aria-live="polite"></section>
+  </main>
+
+  <!-- Detail Modal -->
+  <div id="detailModal" class="modal hidden" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-content">
+      <button class="close" id="closeDetail">×</button>
+      <div id="detailCover" class="detail-cover"></div>
+      <h2 id="detailTitle"></h2>
+      <p id="detailAuthor" class="muted"></p>
+      <div id="detailRating"></div>
+      <p id="detailDescription"></p>
+
+      <div class="price-row">
+        <div><span id="detailPrice" class="price"></span> <small id="detailOldPrice" class="old"></small></div>
+        <div class="qty-control">
+          <label>Qtd: <input id="detailQty" type="number" min="1" value="1"></label>
+        </div>
+      </div>
+
+      <div class="actions-row">
+        <button id="addToCartDetail" class="btn primary">Adicionar ao Carrinho</button>
+        <button id="buyNow" class="btn">Comprar agora</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cart Modal -->
+  <div id="cartModal" class="modal hidden" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-content">
+      <button class="close" id="closeCart">×</button>
+      <h2>Seu Carrinho</h2>
+      <ul id="cartList" class="cart-list"></ul>
+      <div class="cart-summary">
+        <div>Total: <strong id="cartTotal">R$ 0,00</strong></div>
+        <div class="cart-actions">
+          <button id="checkoutPix" class="btn primary">Pagar com PIX</button>
+          <button id="checkoutCard" class="btn">Pagar com Cartão</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div id="loginModal" class="modal hidden" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-content">
+      <button class="close" id="closeLogin">×</button>
+      <h2>Entrar / Cadastrar</h2>
+      <div id="authForms">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input id="email" type="email" placeholder="seu@email.com">
+        </div>
+        <div class="form-group">
+          <label for="password">Senha</label>
+          <input id="password" type="password" placeholder="senha">
+        </div>
+        <div class="form-actions">
+          <button id="loginBtn" class="btn primary">Entrar</button>
+          <button id="signupBtn" class="btn">Criar conta</button>
+          <button id="logoutBtn" class="btn ghost hidden">Sair</button>
+        </div>
+        <div id="authMsg" class="muted small"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin page (single file, local protected) -->
+  <div id="adminPanel" class="modal hidden">
+    <div class="modal-content wide">
+      <button class="close" id="closeAdmin">×</button>
+      <h2>Painel Admin (demo)</h2>
+      <p class="muted">Usuário deve estar autenticado. Este painel é uma demo sem backend (os livros são mantidos localmente).</p>
+      <div class="form-group">
+        <label>Novo livro - Título</label>
+        <input id="adminTitle">
+      </div>
+      <div class="form-group">
+        <label>Autor</label>
+        <input id="adminAuthor">
+      </div>
+      <div class="form-group">
+        <label>Categoria</label>
+        <input id="adminCategory">
+      </div>
+      <div class="form-group">
+        <label>Preço</label>
+        <input id="adminPrice" type="number" step="0.01">
+      </div>
+      <div class="form-actions">
+        <button id="adminAdd" class="btn primary">Adicionar Livro</button>
+      </div>
+      <h3>Livros (local)</h3>
+      <ul id="adminList"></ul>
+    </div>
+  </div>
+
+  <div id="notification" class="notification" aria-live="polite"></div>
+
+  <script src="firebase-auth.js"></script> <!-- helper to initialize Firebase auth if config present -->
+  <script src="script.js"></script>
+</body>
+</html>
